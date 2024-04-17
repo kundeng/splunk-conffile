@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "date": "2022-11-14T21:11:01.254635036Z",
+  "hashAlgorithm": "SHA-256",
+  "app": {
+    "id": 3957,
+    "version": "0.2",
+    "files": [
+      {
+        "path": "bin/input_conf.py",
+        "hash": "4ae6dfafa48679cd6f4cea68f2e15c2ca47e3e07f6540b25df64cc3b42021155"
+      },
+      {
+        "path": "default/app.conf",
+        "hash": "8e3d3ab26d2e0daeda50489abd2458cd5ad75ff6ac2fdd26f9c76c5f07f1b087"
+      },
+      {
+        "path": "default/commands.conf",
+        "hash": "e967f0065f8749f3f68afc7852ea8b5e1741cc0f87245288080b51f605298f8f"
+      },
+      {
+        "path": "default/searchbnf.conf",
+        "hash": "a723d6cddff359b85a24678a040a0cbd61a598793bf2aca8ddc013f0bdfb552b"
+      },
+      {
+        "path": "metadata/default.meta",
+        "hash": "65606afbfd0313b085700a97edb397ce5b4a44da4ce6ed53f1c5212d8c9ec69b"
+      },
+      {
+        "path": "metadata/local.meta",
+        "hash": "a146f5a7aaaf6514069629782a94c1dbf27952214ea996217480ba9ad65d79c2"
+      },
+      {
+        "path": "README.md",
+        "hash": "41c6788fd24e0060f64236593870cc0934b1ee2f9f181f784425363f323f450f"
+      }
+    ]
+  },
+  "products": [
+    {
+      "platform": "splunk",
+      "product": "enterprise",
+      "versions": [
+        "7.1",
+        "7.2",
+        "7.3",
+        "8.0",
+        "8.1",
+        "8.2",
+        "9.0"
+      ],
+      "architectures": [
+        "x86_64"
+      ],
+      "operatingSystems": [
+        "windows",
+        "linux",
+        "macos",
+        "freebsd",
+        "solaris",
+        "aix"
+      ]
+    }
+  ]
+}
