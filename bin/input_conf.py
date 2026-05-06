@@ -28,64 +28,70 @@ except Exception as e:
     stack =  traceback.format_exc()
     splunk.Intersplunk.generateErrorResults("Error : Traceback: '%s'. %s" % (e, stack))
 
-if PATH == 'deployment-apps':
-    fspath = '../../../deployment-apps'
-if PATH == 'apps':
-    fspath = '../../'
-if PATH == 'master-apps':
-    fspath = '../../../master-apps'
+# Map location parameter to filesystem path (relative to bin/ directory)
+# bin/ is at $SPLUNK_HOME/etc/apps/<app>/bin/
+LOCATION_MAP = {
+    'deployment-apps': '../../../deployment-apps',
+    'apps':            '../../',
+    'master-apps':     '../../../master-apps',
+    'system':          '../../../system',
+    'etc':             '../../../',
+}
+
+if PATH not in LOCATION_MAP:
+    splunk.Intersplunk.generateErrorResults(
+        "Unknown location '%s'. Valid: %s" % (PATH, ', '.join(sorted(LOCATION_MAP))))
+    sys.exit(1)
+
+fspath = LOCATION_MAP[PATH]
 
 matches = []
 for root, dirnames, filenames in os.walk(fspath):
-#for root, dirnames, filenames in os.walk('/opt/splunk/etc/deployment-apps/FA-sonarqube/default'):
     for filename in fnmatch.filter(filenames, CONFFILE):
         matches.append(os.path.abspath(os.path.join(root, filename)))
 
-#print matches
-print("we have " + str(len(matches)) + " conf files to loop over", file=sys.stderr)
-
-ini = ConfigParser()
-
-
-#Find all keys in the INI file to build a row template and
-#include a "section" field to store the section name.
-rowTemplate = {"section":""}
+logger.info("Found %d %s files in location=%s", len(matches), CONFFILE, PATH)
 
 results = []
 
 for match in matches:
-    print("handle " + match + " ...", file=sys.stderr)
+    logger.info("Parsing %s", match)
     try:
-        #for each .conf file
         with open(match) as fp:
             config = ConfigParser()
             config.readfp(fp)
-            #for each stanza
-            print("  we have " + str(len(config.sections())) + " stanzas to loop over", file=sys.stderr)
+            logger.info("  %d stanzas in %s", len(config.sections()), match)
             for sec in config.sections():
-                print("    handle stanza " + sec + " in " + match, file=sys.stderr)
                 row = {}
-                # for each key=value
-                row["_time"] = os.path.getmtime(match)  #modification timestamp
-                for key,value in config.items(sec):
-                    print("        key " + key + " and value " + value + " in " + match, file=sys.stderr)
-                    tmp_key = key
-                    tmp_value = value
-                    row[tmp_key] = tmp_value
-                    row["source"] = match
-                    row["stanza"] = sec
-                results.append(row)
-                print("      row " + str(row), file=sys.stderr)
-    except Exception as e:
-        #results.append( {"source":match,"status":"error"}
-        #pass
-        #"""
-        import traceback
-        stack =  traceback.format_exc()
-        #splunk.Intersplunk.generateErrorResults("Error : Traceback: '%s'. %s" % (e, stack))
-        print("Error : Traceback: '%s'. %s" % (e, stack), file=sys.stderr)
-        logger.error("Error : Traceback: '%s'. %s" % (e, stack))
-        #"""
+                row["_time"] = os.path.getmtime(match)
+                row["source"] = match
+                row["stanza"] = sec
 
-print(results, file=sys.stderr)
-splunk.Intersplunk.outputResults( results )
+                # Extract app name from path (deployment-apps/<app>/... or apps/<app>/...)
+                parts = match.replace('\\', '/').split('/')
+                for i, p in enumerate(parts):
+                    if p in ('deployment-apps', 'master-apps', 'apps', 'system'):
+                        if i + 1 < len(parts):
+                            row["app"] = parts[i + 1]
+                        break
+
+                # For serverclass.conf: extract serverClass and app from stanza name
+                # e.g. [serverClass:Windows:app:TA-windows] → server_class=Windows, deploy_app=TA-windows
+                if CONFFILE == 'serverclass.conf' and sec.startswith('serverClass:'):
+                    sc_parts = sec.split(':')
+                    if len(sc_parts) >= 2:
+                        row["server_class"] = sc_parts[1]
+                    if len(sc_parts) >= 4 and sc_parts[2] == 'app':
+                        row["deploy_app"] = sc_parts[3]
+
+                for key, value in config.items(sec):
+                    row[key] = value
+
+                results.append(row)
+    except Exception as e:
+        import traceback
+        stack = traceback.format_exc()
+        logger.error("Error parsing %s: %s\n%s", match, e, stack)
+
+logger.info("Total results: %d", len(results))
+splunk.Intersplunk.outputResults(results)
